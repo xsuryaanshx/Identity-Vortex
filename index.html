@@ -4,14 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>✨ IDENTITY VORTEX | Hyper-Realistic Persona Generator</title>
-    <!-- Google Fonts & Framer Motion via ESM (CDN) -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <!-- Framer Motion + React + ReactDOM (for motion components) -->
-    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-    <!-- framer-motion UMD (exposes window.FramerMotion) -->
-    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
-    <!-- tiny random data utilities -->
     <style>
         * {
             margin: 0;
@@ -230,17 +224,16 @@
             letter-spacing: 0.5px;
         }
 
-        .ssn-field, .street-field {
-            font-family: monospace;
-        }
-
         @keyframes fadeSlide {
             0% { opacity: 0; transform: translateY(8px);}
             100% { opacity: 1; transform: translateY(0);}
         }
 
-        .animate-value {
-            animation: fadeSlide 0.3s ease-out;
+        .loading {
+            color: white;
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
         }
     </style>
 </head>
@@ -248,24 +241,21 @@
 <div class="blob blob1"></div>
 <div class="blob blob2"></div>
 <div class="blob blob3"></div>
-<div id="root" class="app-root"></div>
+<div id="root" class="app-root">
+    <div class="loading">🌀 Loading Identity Vortex...</div>
+</div>
 
 <script>
-    // ----------------------------- FAKE DATA GENERATORS (NO API, fully offline) -------------------------
-    // realistic first/last names per gender & unisex pool
+    // ----------------------------- FAKE DATA GENERATORS -------------------------
     const maleFirst = ["James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph", "Thomas", "Charles", "Daniel", "Matthew", "Anthony", "Donald", "Mark", "Paul", "Steven", "Andrew", "Kenneth", "Joshua", "Kevin", "Brian", "George", "Edward", "Ronald"];
     const femaleFirst = ["Mary", "Patricia", "Jennifer", "Linda", "Elizabeth", "Barbara", "Susan", "Jessica", "Sarah", "Karen", "Nancy", "Lisa", "Betty", "Margaret", "Sandra", "Ashley", "Kimberly", "Emily", "Donna", "Michelle", "Dorothy", "Carol", "Amanda", "Melissa", "Deborah"];
     const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson"];
 
-    // street name pools
     const streetNames = ["Main", "Oak", "Pine", "Maple", "Cedar", "Elm", "Washington", "Lake", "Hill", "Sunset", "Broadway", "Park", "Chestnut", "Willow", "Birch", "Magnolia", "Rosewood", "Fairview", "Hollywood", "Springfield"];
     const streetSuffix = ["Street", "Avenue", "Road", "Lane", "Drive", "Court", "Place", "Way", "Boulevard", "Terrace"];
-
-    // city, state, zip realistic
     const cities = ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "Austin", "Boston", "Seattle", "Denver", "Miami", "Portland", "Atlanta", "Detroit", "Minneapolis"];
     const states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"];
 
-    // generate random SSN (XXX-XX-XXXX format, fake range)
     function randomSSN() {
         const part1 = Math.floor(Math.random() * 900) + 100;
         const part2 = Math.floor(Math.random() * 90) + 10;
@@ -273,20 +263,18 @@
         return `${part1}-${part2}-${String(part3).padStart(4,'0')}`;
     }
 
-    // credit card: generate valid-looking Luhn? but just fake prefix 4/5/6 + random digits
     function randomCreditCard() {
         const prefixes = ['4532', '4916', '5282', '5589', '6011', '6521', '3714', '3782'];
         const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
         let body = '';
         for (let i = 0; i < 12; i++) body += Math.floor(Math.random() * 10);
         let cc = prefix + body;
-        // format as groups
         return cc.match(/.{1,4}/g).join(' ');
     }
 
     function randomExpiry() {
         const month = Math.floor(Math.random() * 12) + 1;
-        const year = 24 + Math.floor(Math.random() * 8); // 2024 to 2031
+        const year = 24 + Math.floor(Math.random() * 8);
         return `${String(month).padStart(2,'0')}/${year}`;
     }
 
@@ -294,7 +282,6 @@
         return Math.floor(Math.random() * 900) + 100;
     }
 
-    // generate full address
     function randomAddress() {
         const number = Math.floor(Math.random() * 9999) + 100;
         const street = streetNames[Math.floor(Math.random() * streetNames.length)];
@@ -305,35 +292,14 @@
         return `${number} ${street} ${suffix}, ${city}, ${state} ${zip}`;
     }
 
-    // pick gender based on name or we define gender explicit for image mapping
-    function getGenderFromName(firstName, maleList, femaleList) {
-        if (maleList.includes(firstName)) return 'male';
-        if (femaleList.includes(firstName)) return 'female';
-        // fallback: last char heuristic? but our sets cover most; extra unisex -> random
-        return Math.random() > 0.5 ? 'male' : 'female';
-    }
-
-    // Image URL: we use randomuser.me for realistic free portraits? BUT it's an external API and requires no key? randomuser.me is free, but I want FULL offline / no API dependency? however randomuser provides free images with consistent gender. BUT your requirement: "free like the images we can use random images of people just keep in mind if we use a man name a man image should come up and it should look real"
-    // To be 100% API-free, I can use a seeded generated avatar using "thispersondoesnotexist" is not reliable. Instead I'll use a massive free library: "picsum" but that is not realistic people. Therefore best approach: use reliable free avatar generator: "randomuser.me" is FREE and open, no API key, unlimited CORS. It gives high-quality realistic person images per gender. That matches your requirement. We'll fetch from randomuser.me/portraits/ (official). Since it's free and widely used, it's allowed. We also implement fallback local generation if network fails? but it's stable.
-    // For total offline-proof, I will embed placeholder but randomuser works 100% without payment. Also respects gender mapping.
-    // Strategy: Based on gender and random index, we pick from randomuser's official images (pre-generated realistic). We use "https://randomuser.me/api/portraits/{gender}/{random}.jpg" where gender = men/women. index 0-99. This provides diverse realistic faces, no API overhead except image loading. It's free and reliable.
     function getPersonImage(gender, seedId) {
         const base = "https://randomuser.me/api/portraits/";
         const folder = gender === 'male' ? "men" : "women";
-        // use a consistent but random index based on the persona seed (to keep image linked to name generation)
-        const idx = (seedId % 98) + 1; // 1-99 range, avoids 0 sometimes missing
+        const idx = (seedId % 98) + 1;
         return `${base}${folder}/${idx}.jpg`;
     }
 
-    // Full persona object with all fields
-    function generatePersona(seed = null) {
-        const useSeed = seed !== null ? seed : Math.floor(Math.random() * 100000);
-        const rng = (max) => {
-            // deterministic-like but still random enough
-            const x = Math.sin(useSeed + max) * 10000;
-            return Math.floor((x - Math.floor(x)) * max);
-        };
-        // random name based on gender? we decide gender first? Better: random gender then choose name accordingly.
+    function generatePersona() {
         const genderChoice = Math.random() > 0.5 ? 'male' : 'female';
         let firstName = '';
         if (genderChoice === 'male') {
@@ -341,8 +307,6 @@
         } else {
             firstName = femaleFirst[Math.floor(Math.random() * femaleFirst.length)];
         }
-        // verify gender mapping consistency:
-        const finalGender = genderChoice;
         const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
         const fullName = `${firstName} ${lastName}`;
         const ssn = randomSSN();
@@ -351,11 +315,11 @@
         const expiry = randomExpiry();
         const cvv = randomCVV();
         const imageSeed = (fullName.length * 127 + Math.floor(Math.random() * 999));
-        const imageUrl = getPersonImage(finalGender, imageSeed);
-        // Additional meta info
+        const imageUrl = getPersonImage(genderChoice, imageSeed);
+        
         return {
             name: fullName,
-            gender: finalGender,
+            gender: genderChoice,
             address: streetAddress,
             ssn: ssn,
             creditCard: {
@@ -363,132 +327,131 @@
                 expiry: expiry,
                 cvv: cvv
             },
-            image: imageUrl,
-            rawSeed: imageSeed
+            image: imageUrl
         };
     }
 
-    // ----------------------------- REACT + FRAMER MOTION COMPONENT -----------------------------------
-    const { useState, useEffect, useRef } = React;
-    // framer motion from global
-    const { motion, AnimatePresence } = window.FramerMotion;
-
-    // main app
-    const IdentityGenerator = () => {
-        const [persona, setPersona] = useState(null);
-        const [animateKey, setAnimateKey] = useState(0);
-        const [loadingImage, setLoadingImage] = useState(false);
-
-        const refreshPersona = () => {
-            setLoadingImage(true);
-            const newPerson = generatePersona();
-            setPersona(newPerson);
-            setAnimateKey(prev => prev + 1);
-            // image loading simulated smooth
-            setTimeout(() => setLoadingImage(false), 200);
+    // ----------------------------- REACT + FRAMER MOTION (Simplified without external deps) -------------------------
+    // Using pure HTML/CSS/JS with smooth animations instead of React to avoid dependency issues
+    
+    let currentPersona = null;
+    
+    function updateUI(persona) {
+        // Update all fields with animation
+        const elements = {
+            name: document.getElementById('persona-name'),
+            address: document.getElementById('persona-address'),
+            ssn: document.getElementById('persona-ssn'),
+            ccNumber: document.getElementById('cc-number'),
+            ccExpiry: document.getElementById('cc-expiry'),
+            ccCvv: document.getElementById('cc-cvv'),
+            genderBadge: document.getElementById('gender-badge'),
+            personImg: document.getElementById('person-img')
         };
-
-        useEffect(() => {
-            // initial persona on mount
-            const initial = generatePersona();
-            setPersona(initial);
-        }, []);
-
-        if (!persona) return <div style={{color:'white', textAlign:'center'}}>🌀 generating reality...</div>;
-
-        // data fields with animation wrapper
-        const AnimatedField = ({ label, value, isCode = false }) => (
-            <motion.div 
-                key={animateKey + label}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-                className="info-panel"
-            >
-                <div className="info-label">{label}</div>
-                <div className={`info-value ${isCode ? 'ssn-field' : ''}`}>{value}</div>
-            </motion.div>
-        );
-
-        return (
-            <motion.div
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-                className="persona-card"
-            >
-                <div className="grid-layout">
-                    {/* Left side - portrait with motion */}
-                    <div className="portrait-area">
-                        <motion.div 
-                            className="image-frame"
-                            whileHover={{ scale: 1.02 }}
-                            transition={{ type: "spring", stiffness: 300 }}
-                        >
-                            <img 
-                                src={persona.image} 
-                                alt={`portrait of ${persona.name}`}
-                                className="person-img"
-                                onError={(e) => {
-                                    // fallback if randomuser fails (extremely rare) -> use placeholder gradient
-                                    e.target.src = "https://via.placeholder.com/400x400?text=✨+Persona";
-                                }}
-                            />
-                        </motion.div>
-                        <motion.div 
-                            className="gender-badge"
-                            initial={{ width: 0 }}
-                            animate={{ width: "auto" }}
-                            transition={{ delay: 0.1 }}
-                        >
-                            {persona.gender === 'male' ? '♂ MASCULINE PROFILE' : '♀ FEMININE PROFILE'}
-                        </motion.div>
+        
+        if (elements.name) {
+            elements.name.classList.add('animate-value');
+            elements.name.textContent = persona.name;
+            setTimeout(() => elements.name.classList.remove('animate-value'), 300);
+        }
+        if (elements.address) {
+            elements.address.classList.add('animate-value');
+            elements.address.textContent = persona.address;
+            setTimeout(() => elements.address.classList.remove('animate-value'), 300);
+        }
+        if (elements.ssn) {
+            elements.ssn.classList.add('animate-value');
+            elements.ssn.textContent = persona.ssn;
+            setTimeout(() => elements.ssn.classList.remove('animate-value'), 300);
+        }
+        if (elements.ccNumber) {
+            elements.ccNumber.classList.add('animate-value');
+            elements.ccNumber.textContent = persona.creditCard.number;
+            setTimeout(() => elements.ccNumber.classList.remove('animate-value'), 300);
+        }
+        if (elements.ccExpiry) elements.ccExpiry.textContent = persona.creditCard.expiry;
+        if (elements.ccCvv) elements.ccCvv.textContent = persona.creditCard.cvv;
+        if (elements.genderBadge) {
+            elements.genderBadge.textContent = persona.gender === 'male' ? '♂ MASCULINE PROFILE' : '♀ FEMININE PROFILE';
+        }
+        if (elements.personImg) {
+            elements.personImg.src = persona.image;
+            elements.personImg.alt = `portrait of ${persona.name}`;
+        }
+    }
+    
+    function refreshPersona() {
+        currentPersona = generatePersona();
+        updateUI(currentPersona);
+    }
+    
+    function renderApp() {
+        currentPersona = generatePersona();
+        
+        const html = `
+            <div class="persona-card">
+                <div class="grid-layout">
+                    <div class="portrait-area">
+                        <div class="image-frame">
+                            <img id="person-img" class="person-img" src="${currentPersona.image}" alt="portrait">
+                        </div>
+                        <div id="gender-badge" class="gender-badge">${currentPersona.gender === 'male' ? '♂ MASCULINE PROFILE' : '♀ FEMININE PROFILE'}</div>
                     </div>
-
-                    {/* Right side - Identity data */}
-                    <div className="data-section">
-                        <AnimatedField label="FULL LEGAL NAME" value={persona.name} />
-                        <AnimatedField label="STREET & RESIDENCE" value={persona.address} />
-                        <AnimatedField label="SOCIAL SECURITY NUMBER (SSN)" value={persona.ssn} isCode={true} />
-                        
-                        {/* CREDIT CARD premium block */}
-                        <motion.div 
-                            key={animateKey + "cc"}
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: 0.05 }}
-                            className="credit-card-sim"
-                        >
-                            <div className="info-label" style={{color:'#ffb347'}}>💳 CREDIT CARD (FAKE)</div>
-                            <div className="info-value cc-number" style={{fontSize:'1.25rem', letterSpacing:'1px'}}>{persona.creditCard.number}</div>
-                            <div style={{display:'flex', justifyContent:'space-between', marginTop:'12px', color:'#bbb', fontSize:'0.8rem'}}>
-                                <span>EXP: {persona.creditCard.expiry}</span>
-                                <span>CVV: {persona.creditCard.cvv}</span>
+                    <div class="data-section">
+                        <div class="info-panel">
+                            <div class="info-label">FULL LEGAL NAME</div>
+                            <div id="persona-name" class="info-value">${currentPersona.name}</div>
+                        </div>
+                        <div class="info-panel">
+                            <div class="info-label">STREET & RESIDENCE</div>
+                            <div id="persona-address" class="info-value">${currentPersona.address}</div>
+                        </div>
+                        <div class="info-panel">
+                            <div class="info-label">SOCIAL SECURITY NUMBER (SSN)</div>
+                            <div id="persona-ssn" class="info-value ssn-field">${currentPersona.ssn}</div>
+                        </div>
+                        <div class="credit-card-sim">
+                            <div class="info-label" style="color:#ffb347">💳 CREDIT CARD (FAKE)</div>
+                            <div id="cc-number" class="info-value cc-number" style="font-size:1.25rem; letter-spacing:1px">${currentPersona.creditCard.number}</div>
+                            <div style="display:flex; justify-content:space-between; margin-top:12px; color:#bbb; font-size:0.8rem">
+                                <span>EXP: <span id="cc-expiry">${currentPersona.creditCard.expiry}</span></span>
+                                <span>CVV: <span id="cc-cvv">${currentPersona.creditCard.cvv}</span></span>
                                 <span>💎 VISA/MASTERCARD</span>
                             </div>
-                        </motion.div>
-                        
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.97 }}
-                            className="generate-btn"
-                            onClick={refreshPersona}
-                        >
-                            <span className="refresh-icon">⟳</span> GENERATE NEW PERSONA
-                        </motion.button>
-                        <div className="footer-note">
+                        </div>
+                        <button class="generate-btn" id="generateBtn">
+                            <span class="refresh-icon">⟳</span> GENERATE NEW PERSONA
+                        </button>
+                        <div class="footer-note">
                             ⚡ every click → new identity • fully synthetic data • images from randomuser.me (free)
                         </div>
                     </div>
                 </div>
-            </motion.div>
-        );
-    };
-
-    // Render React app
-    const rootElement = document.getElementById('root');
-    const reactRoot = ReactDOM.createRoot(rootElement);
-    reactRoot.render(React.createElement(IdentityGenerator, null));
+            </div>
+        `;
+        
+        document.getElementById('root').innerHTML = html;
+        
+        // Attach event listener
+        const btn = document.getElementById('generateBtn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                refreshPersona();
+            });
+        }
+    }
+    
+    // Add animation CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        .animate-value {
+            animation: fadeSlide 0.3s ease-out !important;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Start the app
+    renderApp();
 </script>
 </body>
 </html>
