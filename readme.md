@@ -2,8 +2,6 @@
 
 ### *Hyper-Realistic Persona Generator | Zero API Cost | Portfolio Ready*
 
-![Identity Vortex Preview](https://via.placeholder.com/1200x630/0B0C10/FFD966?text=Identity+Vortex+Generator)
-
 ## 🌀 Overview
 
 **Identity Vortex** is a stunning, production-grade web application that generates complete fake identities (personas) with every refresh. Each click produces:
